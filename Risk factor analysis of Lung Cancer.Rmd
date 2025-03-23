@@ -1,0 +1,511 @@
+---
+title: "RISK FACTOR ANALYSIS OF LUNG CANCER"
+author: "Enock Bereka"
+date: "2025-03-23"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load necessary libraries
+```{r warning=FALSE, message=FALSE}
+library(tidyverse)
+library(performance)
+library(vip)
+library(car)
+library(sjPlot)
+library(emmeans)
+library(gtsummary)
+library(effectsize)
+library(pROC)
+library(report)
+library(equatiomatic)
+library(ggeffects)
+```
+
+## Import the dataset
+```{r warning=FALSE, message=FALSE}
+data = read_csv("C:/Users/PC/OneDrive/Desktop/Data Science/Datasets/Datasets/survey lung cancer_045236.csv")
+```
+
+## Inspect the dataset
+```{r warning=FALSE, message=FALSE}
+glimpse(data)
+```
+
+## Check for missing values
+```{r warning=FALSE, message=FALSE}
+anyNA(data)
+```
+
+## Check for duplicates
+```{r warning=FALSE, message=FALSE}
+sum(duplicated(data))
+```
+
+## Data Preprocessing
+## Remove duplicates
+```{r warning=FALSE, message=FALSE}
+data = data %>% distinct(.)
+```
+
+## Label encoding
+```{r warning=FALSE, message=FALSE}
+data$LUNG_CANCER = ifelse(data$LUNG_CANCER == "YES", 1, 2)
+data$GENDER = as.factor(data$GENDER)
+data <- data %>% mutate_if(is.numeric, as.factor)
+data$AGE <- as.numeric(data$AGE)
+```
+
+## Make names
+```{r warning=FALSE, message=FALSE}
+colnames(data) = make.names(colnames(data))
+```
+
+## Check for outliers in Age
+```{r warning=FALSE, message=FALSE}
+boxplot(data$AGE)
+```
+
+## There are no outliers in Age
+
+## Univariate analysis
+## Summary statistics for age
+```{r warning=FALSE, message=FALSE}
+data %>% select(AGE) %>% summary(.)
+```
+
+## The mean age of respondents is 21 indicating that majority of them were young population
+
+## Distribution analysis
+## Age
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(AGE, fill = ..count..))+
+  geom_histogram(bins = 15, show.legend = F)+
+  scale_fill_gradient(low = "yellow", high = "red")+
+  theme_bw()+
+  labs(title = "Distribution of Respondents based on Age",
+       x = "Age", y = "Frequency")
+```
+
+## The graph indicates a normal distribution of the respondents age.
+
+## Gender
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(GENDER, fill = GENDER))+
+  geom_bar(show.legend = F)+
+  theme_bw()+
+  labs(title = "Distribution of respondents based on Gender")
+```
+
+## Smoking
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(SMOKING, fill = SMOKING))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "SMOKING", labels = c("Smoker", "non smoker"))+
+  labs(title = "Distribution of respondents based on Smoking Status")
+```
+
+## Yellow Fingers
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(YELLOW_FINGERS, fill = YELLOW_FINGERS))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "YELLOW_FINGERS", labels = c("Yes", "No"))+
+  labs(title = "Distribution of respondents based on Yellow Fingers")
+```
+
+## Anxiety
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(ANXIETY, fill = ANXIETY))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "ANXIETY", labels = c("Yes", "No"))+
+  labs(title = "Distribution of respondents based on Anxiety")
+```
+
+## Peer Pressure
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(PEER_PRESSURE, fill = PEER_PRESSURE))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "PEER_PRESSURE", labels = c("Yes", "No"))+
+  labs(title = "Distribution of respondents based on Peer Pressure")
+```
+
+## Chronic Disease
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(CHRONIC.DISEASE, fill = CHRONIC.DISEASE))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "CHRONIC.DISEASE", labels = c("positive", "negative"))+
+  labs(title = "Distribution of respondents based on Chronic Disease")
+```
+
+## Fatigue
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(FATIGUE, fill = FATIGUE))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "FATIGUE", labels = c("Have", "dont Have"))+
+  labs(title = "Distribution of respondents based on Fatigue")
+```
+
+## Allergy
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(ALLERGY, fill = ALLERGY))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "ALLERGY", labels = c("Have", "dont have"))+
+  labs(title = "Distribution of respondents based on Allergy")
+```
+
+## Alcohol Consumption
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(ALCOHOL.CONSUMING, fill = ALCOHOL.CONSUMING))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "ALCOHOL.CONSUMING", labels = c("Consumers", "non consumers"))+
+  labs(title = "Distribution of respondents based on Allergy")
+```
+
+## Wheezing
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(WHEEZING, fill = WHEEZING))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "WHEEZING", labels = c("wheeze", "dont wheeze"))+
+  labs(title = "Distribution of respondents based on Wheezing")
+```
+
+## Coughing
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(COUGHING, fill = COUGHING))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "COUGHING", labels = c("cough", "Dont cough"))+
+  labs(title = "Distribution of respondents based on Coughing")
+```
+
+## Shortness of breath
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(SHORTNESS.OF.BREATH, fill = SHORTNESS.OF.BREATH))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "SHORTNESS.OF.BREATH", labels = c("Yes", "No"))+
+  labs(title = "Distribution of respondents based on Shortness of breath")
+```
+
+## Chest Pain
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(CHEST.PAIN, fill = CHEST.PAIN))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "CHEST.PAIN", labels = c("Yes", "No"))+
+  labs(title = "Distribution of respondents based on Chest Pain")
+```
+
+## Swallowing Difficulty
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(SWALLOWING.DIFFICULTY, fill = SWALLOWING.DIFFICULTY))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "SWALLOWING.DIFFICULTY", labels = c("Yes", "No"))+
+  labs(title = "Distribution of respondents based on Swallowing Difficult")
+```
+
+## Lung Cancer
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(LUNG_CANCER, fill = LUNG_CANCER))+
+  geom_bar()+
+  theme_bw()+
+  scale_fill_discrete(name = "LUNG_CANCER", labels = c("Negative", "Positive"))+
+  labs(title = "Distribution of respondents based on Lung Cancer")
+```
+
+## Bivariate analysis
+## Age vs Lung cancer
+```{r warning=FALSE, message=FALSE}
+t.test(AGE~LUNG_CANCER, data = data)
+```
+
+## There is no significant difference in mean age across the lung cancer status indicated by a p value > 0.05
+
+## Boxplot of the results
+```{r warning=FALSE, message=FALSE}
+ggplot(data, aes(x = LUNG_CANCER, y = AGE, fill = LUNG_CANCER))+
+  geom_boxplot()+
+  theme_bw()+
+  scale_fill_discrete(name = "LUNG_CANCER", labels = c("Negative", "Positive"))+
+  labs(title = "Age vs Lung Cancer")
+```
+
+## Gender Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$GENDER)
+contingency_table
+chisq.test(contingency_table)
+```
+
+## There is no association between lung cancer and gender evidenced by p value > 0.05.
+
+## Smoking Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$SMOKING)
+contingency_table
+chisq.test(contingency_table)
+```
+
+## There is no significant association between smoking and lung cancer as indicated by p-value > 0.05
+
+## Yellow Fingers Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$YELLOW_FINGERS)
+contingency_table
+chisq.test(contingency_table)
+```
+
+## There is a statistically significant association between yellow fingers and lung cancer as indicated by p-value < 0.05. This shows that yellow fingers is substantially connected with lung cancer.
+
+## Anxiety Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$ANXIETY)
+contingency_table
+chisq.test(contingency_table)
+```
+
+## There is a statistically significant association between Anxiety and lung cancer as shown by p-value < 0.05. This shows that anxiety is closely linked with lung cancer.
+
+## Peer Pressure Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$PEER_PRESSURE)
+contingency_table
+chisq.test(contingency_table)
+```
+
+## There is a significant association between peer pressure and lung cancer as indicated by p-value < 0.05.
+
+## Chronic Disease Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$CHRONIC.DISEASE)
+contingency_table
+chisq.test(contingency_table)
+```
+
+## The association between chronic disease and lung cancer is statistically significant with a p-value < 0.05.
+
+## Fatigue Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$FATIGUE)
+contingency_table
+chisq.test(contingency_table)
+```
+
+## There is a significant relationship between fatigue and lung cancer with a p-value < 0.05.
+
+## Allergy Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$ALLERGY)
+contingency_table
+chisq.test(contingency_table)
+```
+
+## There is a significant link between allergy and lung cancer as shown by the p-value < 0.05.
+
+## Wheezing Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$WHEEZING)
+contingency_table
+chisq.test(contingency_table)
+```
+
+## There is an association between wheezing and lung cancer as indicated by p-value < 0.05.
+
+## Alcohol Consumption Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$ALCOHOL.CONSUMING)
+contingency_table
+chisq.test(contingency_table)
+```
+
+## There is a sigificant connection between alcohol consumption and lung cancer as indicated by a p-value < 0.05.
+
+## Coughing Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$COUGHING)
+contingency_table
+chisq.test(contingency_table)
+```
+## There is a substantial connection between coughing and lung cancer  as shown by the p-value < 0.05.
+
+## Shortness of breath Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$SHORTNESS.OF.BREATH)
+contingency_table
+chisq.test(contingency_table)
+```
+
+## There is no significant association between shortness of breath and lung cancer as shown by a p-value < 0.05.
+
+## Swallowing Difficulty Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$SWALLOWING.DIFFICULTY)
+contingency_table
+chisq.test(contingency_table)
+```
+
+## There is a substantial connection between swallowing difficulty and lung cancer as indicated by a p-value < 0.05.
+
+## Chest Pain Vs Lung Cancer
+```{r warning=FALSE, message=FALSE}
+contingency_table = table(data$LUNG_CANCER, data$CHEST.PAIN)
+contingency_table
+chisq.test(contingency_table)
+```
+## There is a substantial connection between chest pain and lung cancer as shown by the p-value less than 0.05.
+
+## Multivariate analysis
+## Logistic Regression
+```{r warning=FALSE, message=FALSE}
+model <- glm(LUNG_CANCER~.-CHEST.PAIN-SHORTNESS.OF.BREATH-WHEEZING-ANXIETY-AGE-GENDER,
+             data = data, family = binomial(link = logit))
+```
+
+## The predictors with a p-value > 0.05 were removed to enhance accuracy of the model
+
+## Check model assumption
+## Goodness of fit
+```{r warning=FALSE, message=FALSE}
+check_predictions(model) %>% plot()
+```
+
+## The predicted data includes the observed data.
+
+## Outliers/Influential observations
+```{r warning=FALSE, message=FALSE}
+check_outliers(model)
+check_outliers(model) %>% plot()
+```
+
+## Multicollinearity
+```{r warning=FALSE, message=FALSE}
+check_collinearity(model)
+```
+
+## There is no multicollinearity in the model indicated by low correlation among the predictors.
+
+## Uniformity of residuals
+```{r warning=FALSE, message=FALSE}
+check_residuals(model)
+check_residuals(model) %>% plot()
+```
+
+## Visualize the models predicted probabilities
+```{r warning=FALSE, message=FALSE}
+plot_model(model, type = "pred", terms = "CHRONIC.DISEASE")
+plot_model(model, type = "pred", terms = "SMOKING")
+plot_model(model, type = "pred", terms = "YELLOW_FINGERS")
+plot_model(model, type = "pred", terms = "PEER_PRESSURE")
+plot_model(model, type = "pred", terms = "FATIGUE")
+plot_model(model, type = "pred", terms = "ALLERGY")
+plot_model(model, type = "pred", terms = "ALCOHOL.CONSUMING")
+plot_model(model, type = "pred", terms = "COUGHING")
+plot_model(model, type = "pred", terms = "SWALLOWING.DIFFICULTY")
+```
+
+## generate odds ratios for the significant predictors
+```{r warning=FALSE, message=FALSE}
+tbl_regression(model, exponentiate = T, pairwise_reverse = F,
+               contrasts_adjust = "bonferroni",pvalue_fun = ~style_pvalue(.x, digits = 3)) %>% 
+  add_significance_stars(hide_p = F, hide_se = T,
+                         hide_ci = F) %>% 
+  bold_p()
+```
+
+## The odds of a smoker developing lung cancer is 75% higher compared to the non smoker. The relationship is statistically significant.
+## The odds of a respondent with yellow fingers developing lung cancer is 82% higher compared to those without yellow fingers. The relationship is statistically significant.
+## The odds of someone under peer pressure developing peer pressure is 83% higher compared to those without peer pressure.
+## The odds of someone with chronic disease developing lung cancer is 94% higher compared to those without chronic disease.
+## The odds of participants under fatigue developing lung cancer is 94% higher compared to those without fatigue.
+## The odds of participants with allergy developing lung cancer is 81% higher compared to those without allergy.
+## The odds of participants who consume alcohol developing lung cancer is 83% higher compared to non consumers.
+## The odds of participants who cough developing lung cancer is 95% higher compared to those who do not cough.
+## The chances of participants with swallowing difficulty developing lung cancer is 97% higher compared to those with no swallowing difficulty.
+
+## Generate the effect size of the model coefficients
+```{r warning=FALSE, message=FALSE}
+car::Anova(model)
+```
+
+## Visualize the models feature importance
+```{r warning=FALSE, message=FALSE}
+vip(model)
+```
+
+## Fatigue emerged to be the top determiniant of lung cancer and smoking the least according to my study.
+
+## Generate model equation for making predictions
+```{r warning=FALSE, message=FALSE}
+extract_eq(model, use_coefs = TRUE)
+```
+
+## Models performance
+```{r warning=FALSE, message=FALSE}
+performance(model)
+```
+
+## The predictors explains a substantial variance of 56.6% in the study variable(lung cancer) making the model a better fit for making predictions.
+
+## Accuracy of the model
+```{r warning=FALSE, message=FALSE}
+roc(LUNG_CANCER~fitted.values(model), data = data,
+    plot = TRUE, legacy.axes = TRUE, 
+    print.auc = TRUE, ci = TRUE)
+```
+
+## The model has an auc of 96.3% making it an excellent tool in classifying participants with lung cancer and those without.
+
+## Mediation and moderation analysis
+## Does Age modify the relationship between smoking and Lung cancer
+```{r warning=FALSE, message=FALSE}
+model_interaction <- glm(LUNG_CANCER ~ SMOKING * AGE, data = data, family = binomial)
+
+## Visualize interaction effect
+plot_model(model_interaction, type = "int")
+```
+
+## Does gender modify the relationship between alcohol consumption and lung cancer
+```{r warning=FALSE, message=FALSE}
+model_interaction <- glm(LUNG_CANCER ~ ALCOHOL.CONSUMING * GENDER, data = data, family = binomial)
+
+## Visualize interaction effect
+plot_model(model_interaction, type = "int")
+```
+
+## Does chronic disease status confound the relationship between fatigue and lung cancer
+```{r warning=FALSE, message=FALSE}
+model_interaction <- glm(LUNG_CANCER ~ FATIGUE * CHRONIC.DISEASE, data = data, family = binomial)
+
+## Visualize interaction effect
+plot_model(model_interaction, type = "int")
+```
+
+## Does anxiety mediate the relationship between peer pressure and lung cancer
+```{r warning=FALSE, message=FALSE}
+model_interaction <- glm(LUNG_CANCER ~ PEER_PRESSURE * ANXIETY, data = data, family = binomial)
+
+## Visualize interaction effect
+plot_model(model_interaction, type = "int")
+```
+
+## Is the effect of chronic disease on lung cancer mediated by fatigue
+```{r warning=FALSE, message=FALSE}
+model_interaction <- glm(LUNG_CANCER ~ CHRONIC.DISEASE * FATIGUE, data = data, family = binomial)
+
+## Visualize interaction effect
+plot_model(model_interaction, type = "int")
+```
+
